@@ -238,7 +238,7 @@ CoverList.prototype.html_cover_init = function () {
         var style = "width: "+attrs.width+"px; height: "+attrs.height+"px; font-size: "+Math.floor(100 * (1 - attrs.factor))+"%; z-index: "+attrs.zindex+"; "+position;
         var box = "<div class=\"cover-box\" id=\"cover_box_"+i+"\" style=\""+style+"\">";
         box +=      "<div class=\"cover-box-content\" style=\""+box_style+"\">";
-        box +=          "<img src=\""+element.thumb+"\"/>";
+        box +=          "<img src=\""+element.thumb+"\" alt=\"" + element.title + "\"/>";
         if (element.title)
             box +=      "<div>"+element.title+"</div>";
         box +=      "</div>";
