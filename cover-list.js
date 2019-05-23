@@ -18,6 +18,7 @@ function CoverList(options) {
     this.color = "#666";
     this.box_bg = "#fff";
     this.force_html = false;
+    this.slider_label_id = null;
     // vars
     this.$widget = null;
     this.widget_width = 0;
@@ -30,7 +31,7 @@ function CoverList(options) {
         current_time: 0
     };
     
-    this.allowed_options = [
+    utils.setup_class(this, options, [
         "widget_place",
         "padding",
         "box_width",
@@ -39,17 +40,17 @@ function CoverList(options) {
         "selected",
         "color",
         "box_bg",
-        "force_html"
-    ];
-    if (options) {
-        this.set_options(options);
-        if (options.elements) {
-            for (var i=0; i < options.elements.length; i++) {
-                this.add_element(options.elements[i]);
-            }
+        "force_html",
+        "slider_label_id"
+    ]);
+    if (options && options.elements) {
+        for (var i=0; i < options.elements.length; i++) {
+            this.add_element(options.elements[i]);
         }
-        if (this.color == "-")
-            this.color = "transparent";
+    }
+    
+    if (this.color == "-") {
+        this.color = "transparent";
     }
     
     var obj = this;
@@ -57,13 +58,6 @@ function CoverList(options) {
         obj.init_cover_list();
     });
 }
-
-CoverList.prototype.set_options = function (options) {
-    for (var i = 0; i < this.allowed_options.length; i++) {
-        if (this.allowed_options[i] in options)
-            this[this.allowed_options[i]] = options[this.allowed_options[i]];
-    }
-};
 
 /* cover list widget */
 CoverList.prototype.add_element = function (ele) {
@@ -81,11 +75,15 @@ CoverList.prototype.add_element = function (ele) {
 CoverList.prototype.init_cover_list = function () {
     // Build widget
     var html = "";
-    html += "<div class=\"cover-loading\"></div>";
+    html += "<span class=\"cover-loading\"><i class=\"fa fa-spin fa-refresh fa-3x\"></i></span>";
+    if (!this.slider_label_id) {
+        this.slider_label_id = "slider_label";
+        html += "<span id=\"" + this.slider_label_id + "\" class=\"sr-only\">" + utils.translate("Images") + "</span>";
+    }
     html += "<div class=\"cover-bar\">";
-    html += "    <a class=\"cover-next\" href=\"#\"><span class=\"cover-next-icon\"></span></a>";
-    html += "    <div class=\"cover-slider\"></div>";
-    html += "    <a class=\"cover-previous\" href=\"#\"><span class=\"cover-previous-icon\"></span></a>";
+    html += "    <button type=\"button\" class=\"cover-previous\" title=\"" + utils.translate("Previous") + "\" aria-label=\"" + utils.translate("Previous") + "\"><i aria-hidden=\"true\" class=\"fa fa-angle-left\"></i></button>";
+    html += "    <div class=\"cover-slider\" role=\"slider\" aria-labelledby=\"" + this.slider_label_id + "\" aria-valuemin=\"0\" aria-valuemax=\"" + (this.elements.length - 1) + "\" aria-valuenow=\"1\" aria-valuetext=\"\"></div>";
+    html += "    <button type=\"button\" class=\"cover-next\" title=\"" + utils.translate("Next") + "\" aria-label=\"" + utils.translate("Next") + "\"><i aria-hidden=\"true\" class=\"fa fa-angle-right\"></i></button>";
     html += "</div>";
     this.$widget = $(this.widget_place);
     this.$widget.html(html).addClass("cover-list");
@@ -196,29 +194,34 @@ CoverList.prototype.calculate_positions = function () {
         }
     }
 };
-CoverList.prototype.go_to_index = function (index, update_slider) {
+CoverList.prototype.go_to_index = function (index) {
     if (this.mode == "canvas")
-        this.canvas_cover_go_to_index(index, update_slider);
+        this.canvas_cover_go_to_index(index);
     else
-        this.html_cover_go_to_index(index, update_slider);
+        this.html_cover_go_to_index(index);
     //console.log("go_to_index", index, this.selected);
 };
 CoverList.prototype.go_to_previous = function () {
     if (this.mode == "canvas")
-        this.canvas_cover_go_to_index(this.selected - 1, true);
+        this.canvas_cover_go_to_index(this.selected - 1);
     else
-        this.html_cover_go_to_index(this.selected - 1, true);
+        this.html_cover_go_to_index(this.selected - 1);
 };
 CoverList.prototype.go_to_next = function () {
     if (this.mode == "canvas")
-        this.canvas_cover_go_to_index(this.selected + 1, true);
+        this.canvas_cover_go_to_index(this.selected + 1);
     else
-        this.html_cover_go_to_index(this.selected + 1, true);
+        this.html_cover_go_to_index(this.selected + 1);
 };
 CoverList.prototype.hide_loading = function () {
     $(".cover-loading", this.$widget).css("display", "none");
 };
-
+CoverList.prototype.update_slider_index = function (index) {
+    $(".cover-slider", this.$widget).attr("aria-valuenow", index);
+    $(".cover-slider", this.$widget).slider("value", index);
+    var text = this.elements[index].title;
+    $(".cover-slider", this.$widget).attr("aria-valuetext", text);
+};
 
 /* cover list with basic html */
 CoverList.prototype.html_cover_init = function () {
@@ -257,10 +260,10 @@ CoverList.prototype.html_cover_select = function (index) {
     }
     else {
         // move boxes
-        this.html_cover_go_to_index(index, true);
+        this.html_cover_go_to_index(index);
     }
 };
-CoverList.prototype.html_cover_go_to_index = function (index, update_slider) {
+CoverList.prototype.html_cover_go_to_index = function (index) {
     if (index < 0 || index > this.elements.length - 1 || index == this.selected)
         return;
     this.selected = index;
@@ -283,8 +286,7 @@ CoverList.prototype.html_cover_go_to_index = function (index, update_slider) {
         box.css("font-size", Math.floor(100 * (1 - attrs.factor))+"%");
         box.animate(style, 500);
     }
-    if (update_slider)
-        $(".cover-slider", this.$widget).slider("value", this.selected);
+    this.update_slider_index(this.selected);
 };
 
 
@@ -359,7 +361,7 @@ CoverList.prototype.canvas_cover_on_image_load = function () {
         this.canvas_cover_draw();
     }
 };
-CoverList.prototype.canvas_cover_go_to_index = function (index, update_slider) {
+CoverList.prototype.canvas_cover_go_to_index = function (index) {
     if (index < 0 || index > this.elements.length - 1 || index == this.selected)
         return;
     this.selected = index;
@@ -386,8 +388,7 @@ CoverList.prototype.canvas_cover_go_to_index = function (index, update_slider) {
     
     this.canvas_cover_animate();
     
-    if (update_slider)
-        $(".cover-slider", this.$widget).slider("value", this.selected);
+    this.update_slider_index(this.selected);
 };
 CoverList.prototype.canvas_cover_add_box = function (box) {
     this.boxes.push(box);
@@ -422,7 +423,7 @@ CoverList.prototype.canvas_cover_select = function (box) {
     }
     else {
         // move boxes
-        this.canvas_cover_go_to_index(box.id, true);
+        this.canvas_cover_go_to_index(box.id);
     }
 };
 CoverList.prototype.canvas_cover_animate = function () {

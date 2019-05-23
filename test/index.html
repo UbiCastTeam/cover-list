@@ -5,9 +5,11 @@
     <meta http-equiv="content-type" content="text/html; charset=utf-8"/>
     
     <link rel="stylesheet" type="text/css" href="../cover-list.css"/>
-    
-    <script type="text/javascript" src="jquery.min.js"></script>
-    <script type="text/javascript" src="jquery-ui.slider-only.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/releases/v5.8.2/css/all.css"/>
+    <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/releases/v5.8.2/css/v4-shims.css"/>
+    <script type="text/javascript" src="../vendors/jquery.min.js"></script>
+    <script type="text/javascript" src="../vendors/jquery-ui.slider-only.min.js"></script>
+    <script type="text/javascript" src="../utils-js/utils.js"></script>
     <script type="text/javascript" src="../cover-list.js"></script>
     <script type="text/javascript">
         var cl = new CoverList({
@@ -20,7 +22,13 @@
                 { title: "Last image", thumb: "4.jpg", url: "4.jpg" },
                 { title: "Transparent image", thumb: "5.png", url: "5.png" },
                 { title: "Small image", thumb: "6.png", url: "6.png" }
-            ]
+            ],
+            translations: {
+                "Select an image": "Sélectionnez une image",
+                "Next": "Next",
+                "Previous": "Previous"
+            },
+            slider_label_id: "label_cover_list"
         });
         var cl2 = new CoverList({
             force_html: true,
@@ -34,7 +42,12 @@
                 { title: "Last image", thumb: "4.jpg", url: "4.jpg" },
                 { title: "Transparent image", thumb: "5.png", url: "5.png" },
                 { title: "Small image", thumb: "6.png", url: "6.png" }
-            ]
+            ],
+            translations: {
+                "Select an image": "Sélectionnez une image",
+                "Next": "Suivant",
+                "Previous": "Précédent"
+            }
         });
     </script>
     
@@ -53,7 +66,7 @@
 </head>
 
 <body>
-    <h1>Using canvas (HTML5)</h1>
+    <h1 id="label_cover_list">Using canvas (HTML5)</h1>
     <div id="cover_list" class="cl"></div>
     <h1>Using HTML (fallback)</h1>
     <div id="cover_list2" class="cl"></div>
