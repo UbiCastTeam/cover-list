@@ -292,7 +292,7 @@ CoverList.prototype.html_cover_go_to_index = function (index) {
 
 /* cover list with html5 canvas */
 CoverList.prototype.canvas_cover_init = function () {
-    this.$canvas = $("<canvas width=\""+this.widget_width+"\" height=\""+this.widget_height+"\"></canvas>");
+    this.$canvas = $("<canvas aria-hidden=\"true\" width=\""+this.widget_width+"\" height=\""+this.widget_height+"\"></canvas>");
     this.$widget.prepend(this.$canvas);
     
     this.canvas = this.$canvas[0];
