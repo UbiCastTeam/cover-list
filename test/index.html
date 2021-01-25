@@ -9,7 +9,7 @@
     <link rel="stylesheet" type="text/css" href="https://use.fontawesome.com/releases/v5.8.2/css/v4-shims.css"/>
     <script type="text/javascript" src="../vendors/jquery.min.js"></script>
     <script type="text/javascript" src="../vendors/jquery-ui.slider-only.min.js"></script>
-    <script type="text/javascript" src="../utils-js/utils.js"></script>
+    <script type="text/javascript" src="../vendors/jsu/jsu.js"></script>
     <script type="text/javascript" src="../cover-list.js"></script>
     <script type="text/javascript">
         var cl = new CoverList({
@@ -28,11 +28,11 @@
                 "Next": "Next",
                 "Previous": "Previous"
             },
-            slider_label_id: "label_cover_list"
+            sliderLabelId: "label_cover_list"
         });
         var cl2 = new CoverList({
-            force_html: true,
-            widget_place: "#cover_list2",
+            forceHtml: true,
+            widgetPlace: "#cover_list2",
             selected: 2,
             color: "#88f",
             elements: [
