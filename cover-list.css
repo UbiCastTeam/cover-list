@@ -40,6 +40,7 @@
     background: #fff;
     border: 1px solid #888;
     border-radius: 4px;
+    padding: 0;
 }
 .cover-list .cover-previous {
     left: 2px;
