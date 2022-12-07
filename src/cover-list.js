@@ -3,7 +3,7 @@
 * Author: Stephane Diemer                         *
 * License: CC by SA v3                            *
 * https://creativecommons.org/licenses/by-sa/3.0/ *
-* Requires: jQuery, jQuery ui slider and jsu      *
+* Requires: jsu                                   *
 **************************************************/
 /* global jsu */
 
@@ -233,12 +233,12 @@ function CoverList (options) {
     this.selected = -1;
     this.color = '#666';
     this.boxBg = '#fff';
-    this.forceHtml = false;
     this.sliderLabelId = null;
     // vars
-    this.$widget = null;
+    this.widgetElement = null;
     this.widgetWidth = 0;
     this.widgetHeight = 0;
+    this.rangeInput = null;
     this.elements = [];
     this.positions = [];
     this.animation = {
@@ -256,7 +256,6 @@ function CoverList (options) {
         'selected',
         'color',
         'boxBg',
-        'forceHtml',
         'sliderLabelId'
     ]);
     if (options && options.elements) {
@@ -270,7 +269,7 @@ function CoverList (options) {
     }
 
     const obj = this;
-    $(document).ready(function () {
+    jsu.onDOMLoad(function () {
         obj.initCoverList();
     });
 }
@@ -290,81 +289,58 @@ CoverList.prototype.addElement = function (ele) {
     this.elements.push(element);
 };
 CoverList.prototype.initCoverList = function () {
-    // Build widget
-    let html = '';
-    html += '<span class="cover-loading"><i class="fa fa-spin fa-refresh fa-3x"></i></span>';
-    if (!this.sliderLabelId) {
-        this.sliderLabelId = 'slider_label';
-        html += '<span id="' + this.sliderLabelId + '" class="sr-only">' + jsu.translate('Images') + '</span>';
-    }
-    html += '<div class="cover-bar">';
-    html += '    <button type="button" class="cover-previous" title="' + jsu.translate('Previous') + '" aria-label="' + jsu.translate('Previous') + '"><i aria-hidden="true" class="fa fa-angle-left"></i></button>';
-    html += '    <div class="cover-slider" role="slider" aria-labelledby="' + this.sliderLabelId + '" aria-valuemin="0" aria-valuemax="' + (this.elements.length - 1) + '" aria-valuenow="1" aria-valuetext=""></div>';
-    html += '    <button type="button" class="cover-next" title="' + jsu.translate('Next') + '" aria-label="' + jsu.translate('Next') + '"><i aria-hidden="true" class="fa fa-angle-right"></i></button>';
-    html += '</div>';
-    this.$widget = $(this.widgetPlace);
-    this.$widget.html(html).addClass('cover-list');
-
-    // use only integer and divisible by two values for width and height
-    // this is done to avoid having a blurry centered image
-    this.widgetWidth = parseInt(this.$widget.width(), 10);
-    if (this.widgetWidth % 2 != 0) {
-        this.widgetWidth--;
-    }
-    this.widgetHeight = parseInt(this.$widget.height(), 10);
-    if (this.widgetHeight % 2 != 0) {
-        this.widgetHeight--;
-    }
-    this.calculatePositions();
-
     if (this.selected < 0) {
         this.selected = Math.floor(this.elements.length / 2);
     } else if (this.selected >= this.elements.length) {
         this.selected = this.elements.length - 1;
     }
 
-    this.mode = null;
-    if (!this.forceHtml) {
-        try {
-            this.canvasCoverInit();
-            this.mode = 'canvas';
-        } catch (e) {
-            //console.log('Error when trying to initialize cover list in canvas mode: ' + e);
-        }
-    }
-    if (!this.mode) {
-        // fallback
-        this.htmlCoverInit();
-        this.mode = 'html';
-    }
+    // Build widget
+    const html = '' +
+        (!this.sliderLabelId ? '<div id="slider_label" class="sr-only">' + jsu.translate('Images') + '</div>' : '') +
+        '<div class="cover-loading"><i class="loader"></i></div>' +
+        '<div class="cover-bar"' + (this.elements.length < 2 ? ' style="display: none;"' : '') + '>' +
+            '<button type="button" class="cover-previous" ' +
+                'title="' + jsu.translate('Previous') + '" aria-label="' + jsu.translate('Previous') + '">' +
+                '<b aria-hidden="true">&lt;</b></button>' +
+            '<div class="cover-slider">' +
+                '<input type="range" role="slider" aria-labelledby="' + (this.sliderLabelId ? this.sliderLabelId : 'slider_label') + '" ' +
+                    'aria-valuemin="0" min="0" aria-valuemax="' + (this.elements.length - 1) + '" max="' + (this.elements.length - 1) + '" ' +
+                    'aria-valuenow="' + this.selected + '" value="' + this.selected + '" aria-valuetext=""/>' +
+            '</div>' +
+            '<button type="button" class="cover-next" ' +
+                'title="' + jsu.translate('Next') + '" aria-label="' + jsu.translate('Next') + '">' +
+                '<b aria-hidden="true">&gt;</b></button>' +
+        '</div>';
+    this.widgetElement = document.querySelector(this.widgetPlace);
+    this.widgetElement.innerHTML = html;
+    this.widgetElement.classList.add('cover-list');
+    this.rangeInput = this.widgetElement.querySelector('.cover-slider input');
 
-    // cover bar display
-    if (this.elements.length < 2) {
-        $('.cover-bar', this.$widget).css('display', 'none');
-    } else {
-        $('.cover-bar', this.$widget).css('display', 'block');
+    // use only integer and divisible by two values for width and height
+    // this is done to avoid having a blurry centered image
+    this.widgetWidth = parseInt(this.widgetElement.clientWidth, 10);
+    if (this.widgetWidth % 2 != 0) {
+        this.widgetWidth--;
+    }
+    this.widgetHeight = parseInt(this.widgetElement.clientHeight, 10);
+    if (this.widgetHeight % 2 != 0) {
+        this.widgetHeight--;
+    }
+    this.calculatePositions();
+
+    try {
+        this.initCanvas();
+    } catch (err) {
+        console.error('Error when trying to initialize cover list.', err);
     }
 
     // init events
     const obj = this;
-    $('.cover-previous', this.$widget).click({ obj: this }, function (e) {
-        e.data.obj.goToPrevious();
-        return false;
-    });
-    $('.cover-next', this.$widget).click({ obj: this }, function (e) {
-        e.data.obj.goToNext();
-        return false;
-    });
-    $('.cover-slider', this.$widget).slider({
-        min: 0,
-        max: this.elements.length - 1,
-        value: this.selected,
-        slide: function (event, ui) {
-            obj.goToIndex(ui.value);
-        },
-        stop: function (event, ui) {
-            obj.goToIndex(ui.value);
-        }
+    this.widgetElement.querySelector('.cover-previous').addEventListener('click', this.goToPrevious.bind(this));
+    this.widgetElement.querySelector('.cover-next').addEventListener('click', this.goToNext.bind(this));
+    this.rangeInput.addEventListener('input', function () {
+        obj.goToIndex(this.value);
     });
 };
 CoverList.prototype.calculatePositions = function () {
@@ -415,117 +391,27 @@ CoverList.prototype.calculatePositions = function () {
         }
     }
 };
-CoverList.prototype.goToIndex = function (index) {
-    if (this.mode == 'canvas') {
-        this.canvasCoverGoToIndex(index);
-    } else {
-        this.htmlCoverGoToIndex(index);
-    }
-    //console.log('goToIndex', index, this.selected);
-};
-CoverList.prototype.goToPrevious = function () {
-    if (this.mode == 'canvas') {
-        this.canvasCoverGoToIndex(this.selected - 1);
-    } else {
-        this.htmlCoverGoToIndex(this.selected - 1);
-    }
-};
-CoverList.prototype.goToNext = function () {
-    if (this.mode == 'canvas') {
-        this.canvasCoverGoToIndex(this.selected + 1);
-    } else {
-        this.htmlCoverGoToIndex(this.selected + 1);
-    }
-};
 CoverList.prototype.hideLoading = function () {
-    $('.cover-loading', this.$widget).css('display', 'none');
+    this.widgetElement.querySelector('.cover-loading').style.display = 'none';
 };
 CoverList.prototype.updateSliderIndex = function (index) {
-    $('.cover-slider', this.$widget).attr('aria-valuenow', index);
-    $('.cover-slider', this.$widget).slider('value', index);
+    this.rangeInput.setAttribute('aria-valuenow', index);
+    this.rangeInput.value = index;
     const text = this.elements[index].title;
-    $('.cover-slider', this.$widget).attr('aria-valuetext', text);
-};
-
-/* cover list with basic html */
-CoverList.prototype.htmlCoverInit = function () {
-    this.hideLoading();
-    const boxStyle = 'border-color: ' + this.color + '; background: ' + this.boxBg + ';';
-    for (let i = 0; i < this.elements.length; i++) {
-        const element = this.elements[i];
-
-        const delta = i - this.selected;
-        const attrs = this.positions[Math.abs(delta)];
-        let position = 'top: ' + attrs.top + 'px; ';
-        if (delta < 0) {
-            position += 'left: ' + (this.widgetWidth - attrs.width - attrs.offset) + 'px;';
-        } else {
-            position += 'left: ' + attrs.offset + 'px;';
-        }
-
-        const style = 'width: ' + attrs.width + 'px; height: ' + attrs.height + 'px; font-size: ' + Math.floor(100 * (1 - attrs.factor)) + '%; z-index: ' + attrs.zindex + '; ' + position;
-        let box = '<div class="cover-box" id="cover_box_' + i + '" style="' + style + '">';
-        box += '<div class="cover-box-content" style="' + boxStyle + '">';
-        box += '<img src="' + element.thumb + '" alt="' + element.title + '"/>';
-        if (element.title) {
-            box += '<div>' + element.title + '</div>';
-        }
-        box += '</div>';
-        box += '</div>';
-        box = $(box);
-        box.click({ obj: this, index: i }, function (e) {
-            e.data.obj.htmlCoverSelect(e.data.index);
-        });
-        this.$widget.append(box);
-    }
-};
-CoverList.prototype.htmlCoverSelect = function (index) {
-    if (index == this.selected) {
-        // go to box url
-        window.location = this.elements[index].url;
-    } else {
-        // move boxes
-        this.htmlCoverGoToIndex(index);
-    }
-};
-CoverList.prototype.htmlCoverGoToIndex = function (index) {
-    if (index < 0 || index > this.elements.length - 1 || index == this.selected) {
-        return;
-    }
-    this.selected = index;
-    for (let i = 0; i < this.elements.length; i++) {
-        const delta = i - this.selected;
-        const attrs = this.positions[Math.abs(delta)];
-        const style = {
-            top: attrs.top,
-            width: attrs.width,
-            height: attrs.height
-        };
-        if (delta < 0) {
-            style.left = this.widgetWidth - attrs.width - attrs.offset;
-        } else {
-            style.left = attrs.offset;
-        }
-
-        const box = $('#cover_box_' + i, this.$widget);
-        box.stop(true, false);
-        box.css('z-index', attrs.zindex);
-        box.css('font-size', Math.floor(100 * (1 - attrs.factor)) + '%');
-        box.animate(style, 500);
-    }
-    this.updateSliderIndex(this.selected);
+    this.rangeInput.setAttribute('aria-valuetext', text);
 };
 
 
-/* cover list with html5 canvas */
-CoverList.prototype.canvasCoverInit = function () {
-    this.$canvas = $('<canvas aria-hidden="true" width="' + this.widgetWidth + '" height="' + this.widgetHeight + '"></canvas>');
-    this.$widget.prepend(this.$canvas);
+CoverList.prototype.initCanvas = function () {
+    const canvasEle = document.createElement('canvas');
+    canvasEle.setAttribute('aria-hidden', 'true');
+    canvasEle.setAttribute('width', this.widgetWidth);
+    canvasEle.setAttribute('height', this.widgetHeight);
+    this.widgetElement.insertBefore(canvasEle, this.widgetElement.firstChild);
 
-    this.canvas = this.$canvas[0];
-    this.width = this.canvas.width;
-    this.height = this.canvas.height;
-    this.ctx = this.canvas.getContext('2d');
+    this.width = canvasEle.width;
+    this.height = canvasEle.height;
+    this.ctx = canvasEle.getContext('2d');
 
     this.boxes = [];
     this.boxesDict = {};
@@ -533,8 +419,10 @@ CoverList.prototype.canvasCoverInit = function () {
     this.imagesLoaded = false;
 
     // click events
-    $(this.canvas).click({ obj: this }, function (evt) {
-        let dom = evt.data.obj.canvas, xOffset = 0, yOffset = 0;
+    const obj = this;
+
+    canvasEle.addEventListener('click', function (evt) {
+        let dom = canvasEle, xOffset = 0, yOffset = 0;
         // get canvas offset
         while (dom != null && dom != undefined) {
             xOffset += dom.offsetLeft;
@@ -543,13 +431,9 @@ CoverList.prototype.canvasCoverInit = function () {
         }
         const x = evt.pageX - xOffset;
         const y = evt.pageY - yOffset;
-        evt.data.obj.canvasCoverOnClick(x, y);
+        obj.onCanvasClick(x, y);
     });
 
-    const obj = this;
-    const callback = function (success) {
-        obj.canvasCoverOnImageLoad(success);
-    };
     for (let i = 0; i < this.elements.length; i++) {
         const element = this.elements[i];
 
@@ -562,7 +446,7 @@ CoverList.prototype.canvasCoverInit = function () {
             left = attrs.offset;
         }
 
-        this.canvasCoverAddBox(new CoverCanvasBox({
+        this.addBox(new CoverCanvasBox({
             id: i,
             bw: this.boxWidth,
             bh: this.boxHeight,
@@ -577,19 +461,25 @@ CoverList.prototype.canvasCoverInit = function () {
             boxBg: this.boxBg,
             thumb: element.thumb,
             url: element.url,
-            callback: callback
+            callback: this.onImageLoad.bind(this)
         }));
     }
 };
-CoverList.prototype.canvasCoverOnImageLoad = function () {
+CoverList.prototype.onImageLoad = function () {
     this.nbImagesLoaded++;
     if (this.nbImagesLoaded >= this.elements.length) {
         this.imagesLoaded = true;
         this.hideLoading();
-        this.canvasCoverDraw();
+        this.drawBoxes();
     }
 };
-CoverList.prototype.canvasCoverGoToIndex = function (index) {
+CoverList.prototype.goToPrevious = function () {
+    this.goToIndex(this.selected - 1);
+};
+CoverList.prototype.goToNext = function () {
+    this.goToIndex(this.selected + 1);
+};
+CoverList.prototype.goToIndex = function (index) {
     if (index < 0 || index > this.elements.length - 1 || index == this.selected) {
         return;
     }
@@ -616,16 +506,16 @@ CoverList.prototype.canvasCoverGoToIndex = function (index) {
         });
     }
 
-    this.canvasCoverAnimate();
+    this.animateMovement();
 
     this.updateSliderIndex(this.selected);
 };
-CoverList.prototype.canvasCoverAddBox = function (box) {
+CoverList.prototype.addBox = function (box) {
     this.boxes.push(box);
     this.boxesDict['box_' + box.id] = box;
     box.loadImage();
 };
-CoverList.prototype.canvasCoverDraw = function () {
+CoverList.prototype.drawBoxes = function () {
     // get background first
     this.boxes = this.boxes.sort(function (a, b) {
         return a.z - b.z;
@@ -637,7 +527,7 @@ CoverList.prototype.canvasCoverDraw = function () {
         this.boxes[i].draw(this.ctx);
     }
 };
-CoverList.prototype.canvasCoverOnClick = function (x, y) {
+CoverList.prototype.onCanvasClick = function (x, y) {
     // get foreground first
     const boxes = this.boxes.sort(function (a, b) {
         return b.z - a.z;
@@ -645,26 +535,26 @@ CoverList.prototype.canvasCoverOnClick = function (x, y) {
     // get selected
     for (let i = 0; i < boxes.length; i++) {
         if (boxes[i].contains(x, y)) {
-            this.canvasCoverSelect(boxes[i]);
+            this.selectBox(boxes[i]);
             break;
         }
     }
 };
-CoverList.prototype.canvasCoverSelect = function (box) {
+CoverList.prototype.selectBox = function (box) {
     if (box.id == this.selected) {
         // go to box url
         window.location = box.url;
     } else {
         // move boxes
-        this.canvasCoverGoToIndex(box.id);
+        this.goToIndex(box.id);
     }
 };
-CoverList.prototype.canvasCoverAnimate = function () {
+CoverList.prototype.animateMovement = function () {
     this.animation.currentTime = 0;
     this.animation.timeout = null;
-    this.canvasCoverAnimateLoop();
+    this.animateMovementLoop();
 };
-CoverList.prototype.canvasCoverAnimateLoop = function () {
+CoverList.prototype.animateMovementLoop = function () {
     if (this.animation.timeout != null) {
         clearTimeout(this.animation.timeout);
         this.animation.timeout = null;
@@ -677,12 +567,12 @@ CoverList.prototype.canvasCoverAnimateLoop = function () {
         this.boxes[i].increment();
     }
     if (this.imagesLoaded) {
-        this.canvasCoverDraw();
+        this.drawBoxes();
     }
     // programm next draw
     this.animation.currentTime += this.animation.interval;
     const obj = this;
     this.animation.timeout = setTimeout(function () {
-        obj.canvasCoverAnimateLoop();
+        obj.animateMovementLoop();
     }, this.animation.interval);
 };
