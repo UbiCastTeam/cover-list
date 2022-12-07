@@ -1,0 +1,19 @@
+{
+  "name": "cover-list",
+  "version": "1.0.0",
+  "description": "",
+  "main": "gulpfile.js",
+  "scripts": {
+    "build": "gulp build",
+    "lint": "eslint ."
+  },
+  "author": "",
+  "license": "LGPLv3",
+  "devDependencies": {
+    "eslint": "latest",
+    "gulp": "latest",
+    "gulp-clean-css": "latest",
+    "gulp-concat": "latest",
+    "gulp-minify": "latest"
+  }
+}
