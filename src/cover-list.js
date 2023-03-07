@@ -306,7 +306,7 @@ CoverList.prototype.initCoverList = function () {
             '<div class="cover-slider">' +
                 '<input type="range" role="slider" aria-labelledby="' + (this.sliderLabelId ? this.sliderLabelId : 'slider_label') + '" ' +
                     'aria-valuemin="0" min="0" aria-valuemax="' + (this.elements.length - 1) + '" max="' + (this.elements.length - 1) + '" ' +
-                    'aria-valuenow="' + this.selected + '" value="' + this.selected + '" aria-valuetext=""/>' +
+                    'aria-valuenow="' + this.selected + '" value="' + this.selected + '" aria-valuetext="" draggable="draggable"/>' +
             '</div>' +
             '<button type="button" class="cover-next" ' +
                 'title="' + jsu.translate('Next') + '" aria-label="' + jsu.translate('Next') + '">' +
