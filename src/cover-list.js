@@ -36,8 +36,7 @@ function CoverCanvasBox (options) {
     this.url = '';
     this.callback = null;
 
-    let field;
-    for (field in options) {
+    for (const field in options) {
         this[field] = options[field];
     }
 
@@ -233,7 +232,6 @@ function CoverList (options) {
     this.selected = -1;
     this.color = '#666';
     this.boxBg = '#fff';
-    this.sliderLabelId = null;
     // vars
     this.widgetElement = null;
     this.widgetWidth = 0;
@@ -255,8 +253,7 @@ function CoverList (options) {
         'minSize',
         'selected',
         'color',
-        'boxBg',
-        'sliderLabelId'
+        'boxBg'
     ]);
     if (options && options.elements) {
         for (let i = 0; i < options.elements.length; i++) {
@@ -268,10 +265,7 @@ function CoverList (options) {
         this.color = 'transparent';
     }
 
-    const obj = this;
-    jsu.onDOMLoad(function () {
-        obj.initCoverList();
-    });
+    jsu.onDOMLoad(this.initCoverList.bind(this));
 }
 
 /* cover list widget */
@@ -282,8 +276,7 @@ CoverList.prototype.addElement = function (ele) {
         thumb: '',
         url: ''
     };
-    let field;
-    for (field in ele) {
+    for (const field in ele) {
         element[field] = ele[field];
     }
     this.elements.push(element);
@@ -296,21 +289,26 @@ CoverList.prototype.initCoverList = function () {
     }
 
     // Build widget
+    let alt = '';
+    for (const element of this.elements) {
+        alt += '<li><a href="' + jsu.escapeAttribute(element.url) + '">' + jsu.escapeHTML(element.title) + '</a></li>';
+    }
     const html = '' +
-        (!this.sliderLabelId ? '<div id="slider_label" class="sr-only">' + jsu.translate('Images') + '</div>' : '') +
-        '<div class="cover-loading"><i class="loader"></i></div>' +
-        '<div class="cover-bar"' + (this.elements.length < 2 ? ' style="display: none;"' : '') + '>' +
-            '<button type="button" class="cover-previous" ' +
-                'title="' + jsu.translate('Previous') + '" aria-label="' + jsu.translate('Previous') + '">' +
-                '<b aria-hidden="true">&lt;</b></button>' +
+        '<ul class="cover-alt sr-only">' + alt + '</ul>' +
+        '<canvas aria-hidden="true"></canvas>' +
+        '<div class="cover-loading" aria-hidden="true"><i class="loader"></i></div>' +
+        '<div class="cover-bar" aria-hidden="true"' + (this.elements.length < 2 ? ' style="display: none;"' : '') + '>' +
+            '<button type="button" class="cover-previous" aria-hidden="true" ' +
+                'title="' + jsu.translate('Previous') + '">' +
+                '<b>&lt;</b></button>' +
             '<div class="cover-slider">' +
-                '<input type="range" role="slider" aria-labelledby="' + (this.sliderLabelId ? this.sliderLabelId : 'slider_label') + '" ' +
-                    'aria-valuemin="0" min="0" aria-valuemax="' + (this.elements.length - 1) + '" max="' + (this.elements.length - 1) + '" ' +
-                    'aria-valuenow="' + this.selected + '" value="' + this.selected + '" aria-valuetext="" draggable="draggable"/>' +
+                '<input type="range" role="slider" aria-hidden="true" ' +
+                    'min="0" max="' + (this.elements.length - 1) + '" ' +
+                    'value="' + this.selected + '" draggable="draggable"/>' +
             '</div>' +
-            '<button type="button" class="cover-next" ' +
-                'title="' + jsu.translate('Next') + '" aria-label="' + jsu.translate('Next') + '">' +
-                '<b aria-hidden="true">&gt;</b></button>' +
+            '<button type="button" class="cover-next" aria-hidden="true" ' +
+                'title="' + jsu.translate('Next') + '">' +
+                '<b>&gt;</b></button>' +
         '</div>';
     this.widgetElement = document.querySelector(this.widgetPlace);
     this.widgetElement.innerHTML = html;
@@ -394,20 +392,10 @@ CoverList.prototype.calculatePositions = function () {
 CoverList.prototype.hideLoading = function () {
     this.widgetElement.querySelector('.cover-loading').style.display = 'none';
 };
-CoverList.prototype.updateSliderIndex = function (index) {
-    this.rangeInput.setAttribute('aria-valuenow', index);
-    this.rangeInput.value = index;
-    const text = this.elements[index].title;
-    this.rangeInput.setAttribute('aria-valuetext', text);
-};
-
-
 CoverList.prototype.initCanvas = function () {
-    const canvasEle = document.createElement('canvas');
-    canvasEle.setAttribute('aria-hidden', 'true');
+    const canvasEle = this.widgetElement.querySelector('canvas');
     canvasEle.setAttribute('width', this.widgetWidth);
     canvasEle.setAttribute('height', this.widgetHeight);
-    this.widgetElement.insertBefore(canvasEle, this.widgetElement.firstChild);
 
     this.width = canvasEle.width;
     this.height = canvasEle.height;
@@ -508,7 +496,7 @@ CoverList.prototype.goToIndex = function (index) {
 
     this.animateMovement();
 
-    this.updateSliderIndex(this.selected);
+    this.rangeInput.value = this.selected;
 };
 CoverList.prototype.addBox = function (box) {
     this.boxes.push(box);
