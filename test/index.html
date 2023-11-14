@@ -8,29 +8,34 @@
     <script type="text/javascript" src="../vendors/jsu/dist/jsu.min.js"></script>
     <script type="text/javascript" src="../src/cover-list.js"></script>
     <script type="text/javascript">
-        var cl = new CoverList({
-            selected: 2,
-            color: "#88f",
-            elements: [
-                { title: "Image", thumb: "1.jpg", url: "1.jpg" },
-                { title: "Very long title with way too much words to fit in the title black bar", thumb: "2.jpg", url: "2.jpg" },
-                { title: "VeryLongWordThatCannotBeSplittedInTwoLines", thumb: "3.jpg", url: "3.jpg" },
-                { title: "Last image", thumb: "4.jpg", url: "4.jpg" },
-                { title: "Transparent image", thumb: "5.png", url: "5.png" },
-                { title: "Small image", thumb: "6.png", url: "6.png" }
-            ]
-        });
+        function initCoverList() {
+            new CoverList({
+                selected: 2,
+                color: document.getElementById('border_color').value,
+                boxBg: document.getElementById('bg_color').value,
+                elements: [
+                    { title: 'Image', thumb: '1.jpg', url: '1.jpg' },
+                    { title: 'Very long title with way too much words to fit in the title black bar', thumb: '2.jpg', url: '2.jpg' },
+                    { title: 'VeryLongWordThatCannotBeSplittedInTwoLines', thumb: '3.jpg', url: '3.jpg' },
+                    { title: 'Big image', thumb: '4.jpg', url: '4.jpg' },
+                    { title: 'Transparent image', thumb: '5.png', url: '5.png' },
+                    { title: 'Small image', thumb: '6.png', url: '6.png' },
+                    { title: 'Image does not exist', thumb: '/404', url: '/404' }
+                ]
+            });
+        }
+        window.addEventListener('DOMContentLoaded', initCoverList);
     </script>
     
     <style>
-        h1 {
-            text-align: center;
+        body > * {
+            margin: 10px auto;
+            max-width: 800px;
+            box-sizing: border-box;
         }
         .cl {
-            margin: 0 auto;
             margin-bottom: 20px;
-            border: 3px solid #88f;
-            max-width: 800px;
+            border: 3px solid #f00;
             height: 300px;
             box-sizing: border-box;
         }
@@ -39,6 +44,16 @@
 
 <body>
     <h1>Cover list test page</h1>
+    <fieldset>
+        <legend>Options</legend>
+        <div>
+            <label for="border_color">Border color:</label>
+            <input id="border_color" type="color" name="border_color" value="#666666" onchange="initCoverList();"/>
+            &nbsp;
+            <label for="bg_color">Background color:</label>
+            <input id="bg_color" type="color" name="bg_color" value="#ffffff" onchange="initCoverList();"/>
+        </div>
+    </fieldset>
     <div id="cover_list" class="cl"></div>
 </body>
 </html>

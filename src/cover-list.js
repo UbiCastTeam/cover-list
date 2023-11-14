@@ -13,8 +13,8 @@
 function CoverCanvasBox (options) {
     this.FIELDS = ['padding', 'x', 'y', 'w', 'h', 'z'];
     this.id = 0;
-    this.bw = 240; // base width
-    this.bh = 135; // base height
+    this.bw = 240; // Base width
+    this.bh = 135; // Base height
     this.padding = 3;
     this.title = '';
     this.titleH = 45;
@@ -41,6 +41,7 @@ function CoverCanvasBox (options) {
     }
 
     this.canvas = null;
+    this.canvasR = null;
 }
 CoverCanvasBox.prototype.loadImage = function () {
     if (!this.thumb) {
@@ -51,18 +52,18 @@ CoverCanvasBox.prototype.loadImage = function () {
     if (this.callback != null) {
         const obj = this;
         image.onload = function () {
-            obj.onLoad(this, true);
+            obj.onLoad(this);
         };
         image.onabort = function () {
-            obj.onLoad(this, true);
+            obj.onLoad(this);
         };
         image.onerror = function () {
-            obj.onLoad(this, false);
+            obj.onLoad(null);
         };
     }
     image.src = this.thumb;
 };
-CoverCanvasBox.prototype.onLoad = function (img, success) {
+CoverCanvasBox.prototype.onLoad = function (img) {
     this.canvas = document.createElement('canvas');
     this.canvas.width = this.bw;
     this.canvas.height = this.bh;
@@ -75,8 +76,8 @@ CoverCanvasBox.prototype.onLoad = function (img, success) {
     ctx.fillRect(0, 0, this.bw, this.bh);
     ctx.fillStyle = this.boxBg;
     ctx.fillRect(this.padding, this.padding, innerw, innerh);
-    if (success) {
-        // draw image (preserve ratio)
+    if (img) {
+        // Draw image (preserve ratio)
         const imgRatio = img.width / img.height;
         let imgW = img.width, imgH = img.height;
         if (imgW > innerw) {
@@ -90,10 +91,10 @@ CoverCanvasBox.prototype.onLoad = function (img, success) {
         ctx.drawImage(img, this.padding + Math.floor((innerw - imgW) / 2), this.padding + Math.floor((innerh - imgH) / 2), imgW, imgH);
     }
     if (this.title) {
-        // draw black mask
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+        // Draw black mask
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
         ctx.fillRect(this.padding, this.padding + innerh - this.titleH, innerw, this.titleH);
-        // get title position
+        // Get title position
         const fontHeight = 16;
         ctx.font = 'italic ' + fontHeight + 'px Arial';
         ctx.fillStyle = '#fff';
@@ -105,14 +106,14 @@ CoverCanvasBox.prototype.onLoad = function (img, success) {
         let lineTop = '', lineBot = '', needBot = true;
         const size = ctx.measureText(this.title).width;
         if (size > maxW) {
-            // text is too long, use 2 lines
+            // Text is too long, use 2 lines
             const splitted = this.title.split(' ');
             let words = splitted.length;
             for (let i = 0; i < words; i++) {
                 const word = splitted[0];
                 if (ctx.measureText(lineTop + ' ' + word).width > maxW) {
                     if (!lineTop) {
-                        // the word is too long
+                        // The word is too long
                         for (let j = 0; j < word.length; j++) {
                             if (ctx.measureText(lineTop + word[j]).width > maxW - 20) {
                                 lineTop += ' ...';
@@ -133,7 +134,7 @@ CoverCanvasBox.prototype.onLoad = function (img, success) {
                     const word = splitted[0];
                     if (ctx.measureText(lineBot + ' ' + word).width > maxW - 20) {
                         if (!lineBot) {
-                            // the word is too long
+                            // The word is too long
                             for (let j = 0; j < word.length; j++) {
                                 if (ctx.measureText(lineBot + word[j]).width > maxW - 20) {
                                     lineBot += ' ...';
@@ -153,7 +154,7 @@ CoverCanvasBox.prototype.onLoad = function (img, success) {
         } else {
             lineTop = this.title;
         }
-        // write title
+        // Write title
         if (lineTop && lineBot) {
             textY = this.padding + innerh - Math.floor((this.titleH + fontHeight) / 2);
             ctx.fillText(lineTop, textX, textY);
@@ -165,6 +166,21 @@ CoverCanvasBox.prototype.onLoad = function (img, success) {
         }
     }
     ctx.save();
+
+    // Create reflection canvas
+    this.canvasR = document.createElement('canvas');
+    this.canvasR.width = this.bw;
+    this.canvasR.height = this.bh;
+
+    const ctxR = this.canvasR.getContext('2d');
+    ctxR.drawImage(this.canvas, 0, 0, this.bw, this.bh);
+    const gradR = ctxR.createLinearGradient(0, 0, 0, this.bh);
+    gradR.addColorStop(0, 'rgba(0, 0, 0, 1)');
+    gradR.addColorStop(0.5, 'rgba(0, 0, 0, 1)');
+    gradR.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+    ctxR.globalCompositeOperation = 'destination-out';
+    ctxR.fillStyle = gradR;
+    ctxR.fillRect(0, 0, this.bw, this.bh);
 
     if (this.callback != null) {
         this.callback(this.id, false);
@@ -195,23 +211,16 @@ CoverCanvasBox.prototype.draw = function (ctx) {
     if (!this.canvas) {
         return;
     }
-    const xr = this.x;
-    const yr = -this.y - 2 * this.h;
+    // Clear area to avoid reflects overlapping
+    ctx.clearRect(this.x, this.y, this.w, 2 * this.h);
 
     ctx.drawImage(this.canvas, this.x, this.y, this.w, this.h);
-    ctx.save(); // save transformation states
+    ctx.save(); // Save transformation states
 
-    // draw reflection
+    // Draw reflection
     ctx.scale(1, -1);
-    ctx.drawImage(this.canvas, xr, yr, this.w, this.h);
-    // fade reflection
-    const grad = ctx.createLinearGradient(0, yr, 0, yr + this.h);
-    grad.addColorStop(0, 'rgba(255, 255, 255, 1)');
-    grad.addColorStop(1, 'rgba(255, 255, 255, 0.5)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(this.x, yr, this.w, this.h);
-
-    ctx.restore(); // retore transformation states
+    ctx.drawImage(this.canvasR, this.x, -this.y - 2 * this.h, this.w, this.h);
+    ctx.restore(); // Retore transformation states
 };
 CoverCanvasBox.prototype.contains = function (x, y) {
     return x >= this.x && x <= this.x + this.w && y >= this.y && y <= this.y + this.h;
@@ -222,7 +231,7 @@ CoverCanvasBox.prototype.contains = function (x, y) {
  * CoverList class
  */
 function CoverList (options) {
-    // params
+    // Params
     this.widgetPlace = '#cover_list';
     this.yOffset = -10;
     this.padding = 3;
@@ -232,7 +241,7 @@ function CoverList (options) {
     this.selected = -1;
     this.color = '#666';
     this.boxBg = '#fff';
-    // vars
+    // Vars
     this.widgetElement = null;
     this.widgetWidth = 0;
     this.widgetHeight = 0;
@@ -315,8 +324,8 @@ CoverList.prototype.initCoverList = function () {
     this.widgetElement.classList.add('cover-list');
     this.rangeInput = this.widgetElement.querySelector('.cover-slider input');
 
-    // use only integer and divisible by two values for width and height
-    // this is done to avoid having a blurry centered image
+    // Use only integer and divisible by two values for width and height
+    // This is done to avoid having a blurry centered image
     this.widgetWidth = parseInt(this.widgetElement.clientWidth, 10);
     if (this.widgetWidth % 2 != 0) {
         this.widgetWidth--;
@@ -333,7 +342,7 @@ CoverList.prototype.initCoverList = function () {
         console.error('Error when trying to initialize cover list.', err);
     }
 
-    // init events
+    // Init events
     const obj = this;
     this.widgetElement.querySelector('.cover-previous').addEventListener('click', this.goToPrevious.bind(this));
     this.widgetElement.querySelector('.cover-next').addEventListener('click', this.goToNext.bind(this));
@@ -406,12 +415,12 @@ CoverList.prototype.initCanvas = function () {
     this.nbImagesLoaded = 0;
     this.imagesLoaded = false;
 
-    // click events
+    // Click events
     const obj = this;
 
     canvasEle.addEventListener('click', function (evt) {
         let dom = canvasEle, xOffset = 0, yOffset = 0;
-        // get canvas offset
+        // Get canvas offset
         while (dom != null && dom != undefined) {
             xOffset += dom.offsetLeft;
             yOffset += dom.offsetTop;
@@ -504,23 +513,23 @@ CoverList.prototype.addBox = function (box) {
     box.loadImage();
 };
 CoverList.prototype.drawBoxes = function () {
-    // get background first
+    // Get background first
     this.boxes = this.boxes.sort(function (a, b) {
         return a.z - b.z;
     });
-    // clear canvas
+    // Clear canvas
     this.ctx.clearRect(0, 0, this.width, this.height);
-    // draw boxes
+    // Draw boxes
     for (let i = 0; i < this.boxes.length; i++) {
         this.boxes[i].draw(this.ctx);
     }
 };
 CoverList.prototype.onCanvasClick = function (x, y) {
-    // get foreground first
+    // Get foreground first
     const boxes = this.boxes.sort(function (a, b) {
         return b.z - a.z;
     });
-    // get selected
+    // Get selected
     for (let i = 0; i < boxes.length; i++) {
         if (boxes[i].contains(x, y)) {
             this.selectBox(boxes[i]);
@@ -530,10 +539,10 @@ CoverList.prototype.onCanvasClick = function (x, y) {
 };
 CoverList.prototype.selectBox = function (box) {
     if (box.id == this.selected) {
-        // go to box url
+        // Go to box url
         window.location = box.url;
     } else {
-        // move boxes
+        // Move boxes
         this.goToIndex(box.id);
     }
 };
@@ -550,14 +559,14 @@ CoverList.prototype.animateMovementLoop = function () {
     if (this.animation.currentTime >= this.animation.duration) {
         return;
     }
-    // draw next step
+    // Draw next step
     for (let i = 0; i < this.boxes.length; i++) {
         this.boxes[i].increment();
     }
     if (this.imagesLoaded) {
         this.drawBoxes();
     }
-    // programm next draw
+    // Programm next draw
     this.animation.currentTime += this.animation.interval;
     const obj = this;
     this.animation.timeout = setTimeout(function () {
