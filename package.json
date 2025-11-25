@@ -10,8 +10,8 @@
   "author": "",
   "license": "LGPLv3",
   "devDependencies": {
-    "eslint": "latest",
-    "gulp": "latest",
+    "eslint": "< 9",
+    "gulp": "< 5",
     "gulp-clean-css": "latest",
     "gulp-concat": "latest",
     "gulp-minify": "latest"
